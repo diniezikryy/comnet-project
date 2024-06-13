@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block content %}
+    <div class="container">
+        <h1 class="display-6">Comnet Dashboard</h1>
+        <p>Current User: {{ current_user.username }}</p>
+
+        <div class="row">
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        Door Control
+                    </div>
+                    <div class="card-body">
+                        <button class="btn btn-success" onclick="controlDoor('lock')">Lock Door</button>
+                        <button class="btn btn-danger" onclick="controlDoor('unlock')">Unlock Door</button>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        Fan Control
+                    </div>
+                    <div class="card-body">
+                        <button class="btn btn-success" onclick="controlFan('on')">Turn Fan On</button>
+                        <button class="btn btn-danger" onclick="controlFan('off')">Turn Fan Off</button>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        Light Control
+                    </div>
+                    <div class="card-body">
+                        <button class="btn btn-success" onclick="controlLight('on')">Turn Light On</button>
+                        <button class="btn btn-danger" onclick="controlLight('off')">Turn Light Off</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    function controlDoor(action) {
+        // write logic for door lock/unlock
+        alert('Door ' + action);
+    }
+
+    function controlFan(action) {
+        // write logic for fan
+        alert('Fan ' + action);
+    }
+
+    function controlLight(action) {
+        // over here, write actual logic to off/on light
+        alert('Light ' + action);
+    }
+</script>
+
+{% endblock %}

@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Control Panel</h2>
+<form method="POST">
+    <button name="action" value="unlock" class="btn btn-success">Unlock Door</button>
+    <button name="action" value="lock" class="btn btn-danger">Lock Door</button>
+    <button name="action" value="fan_on" class="btn btn-info">Turn Fan On</button>
+    <button name="action" value="fan_off" class="btn btn-warning">Turn Fan Off</button>
+    <button name="action" value="lights_on" class="btn btn-info">Turn Lights On</button>
+    <button name="action" value="lights_off" class="btn btn-warning">Turn Lights Off</button>
+</form>
+{% endblock %}
