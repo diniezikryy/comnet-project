@@ -43,17 +43,32 @@
 
     <script>
     function controlDoor(action) {
-        // write logic for door lock/unlock
-        alert('Door ' + action);
+        // TODO: write logic for door lock/unlock
+
+        // send POST request to /control_door
+        fetch('/control_door', {
+            method: 'POST', 
+            headers: {
+                'Content-Type': 'application/json'
+            }, 
+            body: JSON.stringify({action})
+        })
+        .then(response => response.json())
+        .then(data => {
+            alert(data.message);
+        })
+        .catch(error => {
+            console.error("Error: ", error);
+        });
     }
 
     function controlFan(action) {
-        // write logic for fan
+        // TODO: write logic for fan
         alert('Fan ' + action);
     }
 
     function controlLight(action) {
-        // over here, write actual logic to off/on light
+        // TODO: over here, write actual logic to off/on light
         alert('Light ' + action);
     }
 </script>

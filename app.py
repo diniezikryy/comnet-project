@@ -3,6 +3,7 @@ from extensions import db, login_manager
 from flask_login import login_user, login_required, logout_user, current_user
 from forms import RegistrationForm, LoginForm
 from models import User, Log
+import controls
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = '695bf18ae30e380398715ff072e684c0d1437958c7e9147a'
@@ -55,6 +56,9 @@ def login():
 def logout():
     logout_user()
     return redirect(url_for('login'))
+
+# ADD CONTROLS FOR PIN
+app.add_url_rule('/control_door', 'control_door', view_func=controls.control_door, methods=["POST"])
 
 # DB & Running Flask Web App
 
