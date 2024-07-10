@@ -16,7 +16,7 @@ login_manager.init_app(app)
 
 clients = {
     # "94.16.32.21": "door_attempt",
-    "127.0.0.1": "door_attempt",
+    "127.0.0.1": "door",
     "94.16.32.23": "lights"
 }
 
@@ -38,10 +38,10 @@ def handle_tcp_client(client_socket, client_address):
             action = clients[client_ip]
 
             if action:
-                client, message = data.decode('utf-8').split(": ", 1)
+                client, message = data.decode('utf-8').split(": ", 1) # format >> (PI: UID, STATUS) PI1: 1829asjdh183, success
                 print(f"Received data from {client}: {message}")
 
-                if action == "door_attempt":
+                if action == "door":
                     socketio.emit(action, {"data": f"{datetime.now().strftime('%d/%m/%Y %H:%M:%S')}, {message}"})
                 else:
                     socketio.emit(action, {"data": message})
@@ -56,6 +56,9 @@ def handle_tcp_client(client_socket, client_address):
             break
     client_socket.close()
 
+def handle_disconnect():
+    print('Client disconnected')
+
 def tcp_server():
     tcp_server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     tcp_server_socket.bind((TCP_IP, TCP_PORT))
@@ -68,12 +71,17 @@ def tcp_server():
         client_handler = threading.Thread(target=handle_tcp_client, args=(client_socket, addr))
         client_handler.start()
 
-@socketio.on('message')
-def handle_message(message):
-    print("HELLO?????????????????")
-    print('received message: ' + message)
-    # Here you can handle messages received from WebSocket clients
-    # and potentially forward them to the TCP server if needed
+@app.route("/send_data")
+def send_data():
+    sendto_client = request.args.get('client')
+    message = request.args.get('message')
+    print(f"we got client: {sendto_client} and message: {message}")
+
+    for ip, client in clients.items():
+        if client == sendto_client:
+            print(f"sending back to {sendto_client}:{ip}")
+            socketio.send(message.encode(), to = ip)
+    return ""
 
 # = = = others = = =
 @login_manager.user_loader
@@ -121,7 +129,6 @@ def logout():
     return redirect(url_for('login'))
 
 # DB & Running Flask Web App
-
 def create_app():
     with app.app_context():
         db.create_all()

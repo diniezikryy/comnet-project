@@ -8,7 +8,7 @@
             console.log("js started")
             var socket = io();
             
-            socket.on('door_attempt', function(msg) {
+            socket.on('door', function(msg) {
                 console.log(`new door attempt ${msg}`)
                 // Assuming msg contains data and timestamp properties
                 var table = document.getElementById('door_attempt_table').getElementsByTagName('tbody')[0];
@@ -18,14 +18,12 @@
                 var uidCell = newRow.insertCell(1);
                 var statusCell = newRow.insertCell(2);
 
-                // var datetime = new Date();
-                // timestampCell.textContent = `${datetime.getDate()}/${datetime.getMonth()}/${datetime.getFullYear()} ${datetime.getHours()}:${datetime.getMinutes()}:${datetime.getseconds()}`; ; // Ensure msg has a timestamp property
-                var datetime, uid, status = msg.data.split(", ")
-                console.log(`datetime: ${datetime}`)
+                var [datetime, uid, status] = msg.data.split(", ")
+                console.log(`datetime1: ${datetime}`)
                 console.log(`uid: ${uid}`)
                 console.log(`uid: ${status}`)
-                timestampCell.textContent = datetime; // Ensure msg has a timestamp property
-                uidCell.textContent = uid;
+                timestampCell.textContent = datetime; 
+                    uidCell.textContent = uid;
                 statusCell.textContent = status;
             });
 
