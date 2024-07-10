@@ -10,6 +10,7 @@ from datetime import datetime
 app = Flask(__name__)
 app.config['SECRET_KEY'] = '695bf18ae30e380398715ff072e684c0d1437958c7e9147a'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///site.db'
+app.config['DEBUG'] = True  # Enable debug mode
 
 db.init_app(app)
 login_manager.init_app(app)
@@ -25,6 +26,7 @@ socketio = SocketIO(app)
 TCP_IP = socket.gethostbyname(socket.gethostname())
 TCP_PORT = 12345
 BUFFER = 1024
+
 
 # Function to handle incoming socket data
 def handle_tcp_client(client_socket, client_address):
@@ -56,8 +58,14 @@ def handle_tcp_client(client_socket, client_address):
             break
     client_socket.close()
 
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
 def handle_disconnect():
     print('Client disconnected')
+=======
+>>>>>>> Stashed changes
+=======
+>>>>>>> Stashed changes
 
 def tcp_server():
     tcp_server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -71,6 +79,8 @@ def tcp_server():
         client_handler = threading.Thread(target=handle_tcp_client, args=(client_socket, addr))
         client_handler.start()
 
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
 @app.route("/send_data")
 def send_data():
     sendto_client = request.args.get('client')
@@ -82,6 +92,19 @@ def send_data():
             print(f"sending back to {sendto_client}:{ip}")
             socketio.send(message.encode(), to = ip)
     return ""
+=======
+=======
+>>>>>>> Stashed changes
+
+@socketio.on('message')
+def handle_message(message):
+    print("HELLO?????????????????")
+    print('received message: ' + message)
+    # Here you can handle messages received from WebSocket clients
+    # and potentially forward them to the TCP server if needed
+>>>>>>> Stashed changes
+
+
 
 # = = = others = = =
 @login_manager.user_loader
@@ -93,6 +116,27 @@ def load_user(user_id):
 @login_required
 def index():
     return render_template('index.html')
+
+
+@app.route('/test')
+def test():
+    return render_template('test.html')
+
+
+@app.route('/logs')
+@login_required
+def logs():
+    # Hardcoded logs
+    logs = [
+        {'datetime': '1/1/24 5:00:00', 'status': 'Successful', 'id': '123456789009'},
+        {'datetime': '1/1/24 5:05:00', 'status': 'Fail', 'id': '123456789010'},
+        {'datetime': '1/1/24 5:10:00', 'status': 'Successful', 'id': '123456789011'},
+        {'datetime': '1/1/24 5:15:00', 'status': 'Fail', 'id': '123456789012'},
+        {'datetime': '1/1/24 5:20:00', 'status': 'Successful', 'id': '123456789013'},
+        {'datetime': '1/1/24 5:25:00', 'status': 'Fail', 'id': '123456789014'},
+        # Add more logs as needed
+    ]
+    return render_template('test_logs.html', logs=logs)
 
 
 @app.route('/register', methods=['GET', 'POST'])
@@ -128,6 +172,12 @@ def logout():
     logout_user()
     return redirect(url_for('login'))
 
+<<<<<<< Updated upstream
+=======
+
+# DB & Running Flask Web App
+>>>>>>> Stashed changes
+
 # DB & Running Flask Web App
 def create_app():
     with app.app_context():
@@ -144,5 +194,5 @@ if __name__ == '__main__':
     thread = threading.Thread(target=tcp_server)
     thread.daemon = True
     thread.start()
-    
-    socketio.run(app, host='0.0.0.0', port=5001)
+
+    socketio.run(app, host='0.0.0.0', port=5001, debug=True)

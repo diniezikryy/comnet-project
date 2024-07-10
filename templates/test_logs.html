@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <div class="row my-3">
+        <div class="col-12">
+            <h1 class="text-center">All Logs</h1>
+            <div class="card">
+                <div class="card-header">
+                    Smart Lock Log
+                </div>
+                <div class="card-body">
+                    <table class="table table-bordered">
+                        <thead class="thead-light">
+                            <tr>
+                                <th scope="col">DateTime</th>
+                                <th scope="col">Status</th>
+                                <th scope="col">ID</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>1/1/24 5:00:00</td>
+                                <td>Successful</td>
+                                <td>123456789009</td>
+                            </tr>
+                            <tr>
+                                <td>1/1/24 5:05:00</td>
+                                <td>Fail</td>
+                                <td>123456789010</td>
+                            </tr>
+                            <tr>
+                                <td>1/1/24 5:10:00</td>
+                                <td>Successful</td>
+                                <td>123456789011</td>
+                            </tr>
+                            <tr>
+                                <td>1/1/24 5:15:00</td>
+                                <td>Fail</td>
+                                <td>123456789012</td>
+                            </tr>
+                            <tr>
+                                <td>1/1/24 5:20:00</td>
+                                <td>Successful</td>
+                                <td>123456789013</td>
+                            </tr>
+                            <tr>
+                                <td>1/1/24 5:25:00</td>
+                                <td>Fail</td>
+                                <td>123456789014</td>
+                            </tr>
+                            <!-- Add more logs as needed -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
