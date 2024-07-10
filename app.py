@@ -58,14 +58,8 @@ def handle_tcp_client(client_socket, client_address):
             break
     client_socket.close()
 
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
 def handle_disconnect():
     print('Client disconnected')
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
 
 def tcp_server():
     tcp_server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -79,8 +73,6 @@ def tcp_server():
         client_handler = threading.Thread(target=handle_tcp_client, args=(client_socket, addr))
         client_handler.start()
 
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
 @app.route("/send_data")
 def send_data():
     sendto_client = request.args.get('client')
@@ -91,20 +83,7 @@ def send_data():
         if client == sendto_client:
             print(f"sending back to {sendto_client}:{ip}")
             socketio.send(message.encode(), to = ip)
-    return ""
-=======
-=======
->>>>>>> Stashed changes
-
-@socketio.on('message')
-def handle_message(message):
-    print("HELLO?????????????????")
-    print('received message: ' + message)
-    # Here you can handle messages received from WebSocket clients
-    # and potentially forward them to the TCP server if needed
->>>>>>> Stashed changes
-
-
+    return redirect("/")
 
 # = = = others = = =
 @login_manager.user_loader
@@ -171,12 +150,6 @@ def login():
 def logout():
     logout_user()
     return redirect(url_for('login'))
-
-<<<<<<< Updated upstream
-=======
-
-# DB & Running Flask Web App
->>>>>>> Stashed changes
 
 # DB & Running Flask Web App
 def create_app():
