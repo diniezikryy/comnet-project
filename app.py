@@ -120,9 +120,6 @@ def logout():
     logout_user()
     return redirect(url_for('login'))
 
-# ADD CONTROLS FOR PIN
-app.add_url_rule('/control_door', 'control_door', view_func=controls.control_door, methods=["POST"])
-
 # DB & Running Flask Web App
 
 def create_app():
