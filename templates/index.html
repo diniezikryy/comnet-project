@@ -1,8 +1,60 @@
 {% extends "base.html" %}
+
 {% block content %}
+    <!-- <script src="../static/js/socket.js"></script> -->
+    <script src="{{ url_for('static', filename='js/socket.js') }}"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', (event) => {
+            console.log("js started")
+            var socket = io();
+            
+            socket.on('door_attempt', function(msg) {
+                console.log(`new door attempt ${msg}`)
+                // Assuming msg contains data and timestamp properties
+                var table = document.getElementById('door_attempt_table').getElementsByTagName('tbody')[0];
+                var newRow = table.insertRow();
+
+                var timestampCell = newRow.insertCell(0);
+                var uidCell = newRow.insertCell(1);
+                var statusCell = newRow.insertCell(2);
+
+                // var datetime = new Date();
+                // timestampCell.textContent = `${datetime.getDate()}/${datetime.getMonth()}/${datetime.getFullYear()} ${datetime.getHours()}:${datetime.getMinutes()}:${datetime.getseconds()}`; ; // Ensure msg has a timestamp property
+                var datetime, uid, status = msg.data.split(", ")
+                console.log(`datetime: ${datetime}`)
+                console.log(`uid: ${uid}`)
+                console.log(`uid: ${status}`)
+                timestampCell.textContent = datetime; // Ensure msg has a timestamp property
+                uidCell.textContent = uid;
+                statusCell.textContent = status;
+            });
+
+            socket.on('lights', function(msg){
+                // Handle lights event
+            })
+        });
+    </script>
+
     <div class="container">
         <h1 class="display-6">Comnet Dashboard</h1>
         <p>Current User: {{ current_user.username }}</p>
+
+        <div class="row p-2">
+            <h2>Door Attempt</h2>
+            <table id="door_attempt_table">
+                <thead>
+                    <tr>
+                        <th>Timestamp</th>
+                        <th>UID</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+    
+                <tbody>
+    
+                </tbody>
+            </table>
+        </div>
 
         <div class="row">
             <div class="col-md-4">

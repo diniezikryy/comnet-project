@@ -3,7 +3,9 @@ from extensions import db, login_manager
 from flask_login import login_user, login_required, logout_user, current_user
 from forms import RegistrationForm, LoginForm
 from models import User, Log
-import controls
+from flask_socketio import SocketIO, emit
+import socket, threading
+from datetime import datetime
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = '695bf18ae30e380398715ff072e684c0d1437958c7e9147a'
@@ -12,7 +14,68 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///site.db'
 db.init_app(app)
 login_manager.init_app(app)
 
+clients = {
+    # "94.16.32.21": "door_attempt",
+    "127.0.0.1": "door_attempt",
+    "94.16.32.23": "lights"
+}
 
+# = = = socket tcp = = =
+socketio = SocketIO(app)
+TCP_IP = socket.gethostbyname(socket.gethostname())
+TCP_PORT = 12345
+BUFFER = 1024
+
+# Function to handle incoming socket data
+def handle_tcp_client(client_socket, client_address):
+    while True:
+        try:
+            data = client_socket.recv(BUFFER)
+            if not data:
+                break
+            # Emit data to WebSocket clients
+            client_ip = client_address[0]
+            action = clients[client_ip]
+
+            if action:
+                client, message = data.decode('utf-8').split(": ", 1)
+                print(f"Received data from {client}: {message}")
+
+                if action == "door_attempt":
+                    socketio.emit(action, {"data": f"{datetime.now().strftime('%d/%m/%Y %H:%M:%S')}, {message}"})
+                else:
+                    socketio.emit(action, {"data": message})
+
+                # Redirect to the appropriate endpoint
+                # with app.test_request_context():
+                #     return redirect(url_for(action))
+            else:
+                print(f"Received data from unknown client {client_ip}: {data.decode('utf-8')}")
+
+        except ConnectionResetError:
+            break
+    client_socket.close()
+
+def tcp_server():
+    tcp_server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    tcp_server_socket.bind((TCP_IP, TCP_PORT))
+    tcp_server_socket.listen(5)
+    print(f"TCP server listening on {TCP_IP}:{TCP_PORT}")
+
+    while True:
+        client_socket, addr = tcp_server_socket.accept()
+        print(f"Connection from {addr}")
+        client_handler = threading.Thread(target=handle_tcp_client, args=(client_socket, addr))
+        client_handler.start()
+
+@socketio.on('message')
+def handle_message(message):
+    print("HELLO?????????????????")
+    print('received message: ' + message)
+    # Here you can handle messages received from WebSocket clients
+    # and potentially forward them to the TCP server if needed
+
+# = = = others = = =
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
@@ -74,4 +137,8 @@ def inject_user():
 
 if __name__ == '__main__':
     create_app()
-    app.run(host='0.0.0.0', port=5001, debug=True)
+    thread = threading.Thread(target=tcp_server)
+    thread.daemon = True
+    thread.start()
+    
+    socketio.run(app, host='0.0.0.0', port=5001)
