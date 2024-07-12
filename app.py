@@ -4,7 +4,7 @@ from flask_login import login_user, login_required, logout_user, current_user
 from forms import RegistrationForm, LoginForm
 from models import User, Log
 from flask_socketio import SocketIO, emit
-import socket, threading
+import socket, threading, signal, sys, os
 from datetime import datetime
 
 app = Flask(__name__)
@@ -24,9 +24,10 @@ clients = {
 # = = = socket tcp = = =
 socketio = SocketIO(app)
 TCP_IP = socket.gethostbyname(socket.gethostname())
-TCP_PORT = 12345
+TCP_PORT = 54321
 BUFFER = 1024
 
+tcp_server_socket = None
 
 # Function to handle incoming socket data
 def handle_tcp_client(client_socket, client_address):
@@ -62,10 +63,16 @@ def handle_disconnect():
     print('Client disconnected')
 
 def tcp_server():
+    global tcp_server_socket
+    if tcp_server_socket is not None:
+        print("\n\nTCP server is already running")
+        return
+    
+    print("Starting TCP server...")
     tcp_server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     tcp_server_socket.bind((TCP_IP, TCP_PORT))
     tcp_server_socket.listen(5)
-    print(f"TCP server listening on {TCP_IP}:{TCP_PORT}")
+    print(f"\nTCP server listening on {TCP_IP}:{TCP_PORT}")
 
     while True:
         client_socket, addr = tcp_server_socket.accept()
@@ -164,8 +171,9 @@ def inject_user():
 
 if __name__ == '__main__':
     create_app()
-    thread = threading.Thread(target=tcp_server)
-    thread.daemon = True
-    thread.start()
+    if not os.environ.get('WERKZEUG_RUN_MAIN'):  # Only run the server if not in the reloader
+        thread = threading.Thread(target=tcp_server)
+        thread.daemon = True
+        thread.start()
 
     socketio.run(app, host='0.0.0.0', port=5001, debug=True)
