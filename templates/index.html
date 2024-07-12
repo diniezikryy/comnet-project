@@ -7,29 +7,45 @@
         document.addEventListener('DOMContentLoaded', (event) => {
             console.log("js started")
             var socket = io();
+
+             // Check if connected
+            socket.on('connect', () => {
+                console.log("Socket.IO connected!");
+            });
             
-            socket.on('door', function(msg) {
-                console.log(`new door attempt ${msg}`)
-                // Assuming msg contains data and timestamp properties
-                var table = document.getElementById('door_attempt_table').getElementsByTagName('tbody')[0];
-                var newRow = table.insertRow();
+            socket.on("door", function(msg) {
+                console.log(`Received new door attempt message: ${JSON.stringify(msg)}`);
 
-                var timestampCell = newRow.insertCell(0);
-                var uidCell = newRow.insertCell(1);
-                var statusCell = newRow.insertCell(2);
+                if (msg && msg.data) {
+                    // Assuming msg contains data and timestamp properties
+                    var table = document.getElementById('door_attempt_table').getElementsByTagName('tbody')[0];
+                    var newRow = table.insertRow();
 
-                var [datetime, uid, status] = msg.data.split(", ")
-                console.log(`datetime1: ${datetime}`)
-                console.log(`uid: ${uid}`)
-                console.log(`uid: ${status}`)
-                timestampCell.textContent = datetime; 
+                    var timestampCell = newRow.insertCell(0);
+                    var uidCell = newRow.insertCell(1);
+                    var statusCell = newRow.insertCell(2);
+
+                    var [datetime, uid, status] = msg.data.split(", ")
+                    console.log(`datetime1: ${datetime}`)
+                    console.log(`uid: ${uid}`)
+                    console.log(`uid: ${status}`)
+                    timestampCell.textContent = datetime; 
                     uidCell.textContent = uid;
-                statusCell.textContent = status;
+                    statusCell.textContent = status;
+                } else {
+                    console.log("Received malformed message:", msg);
+                }
             });
 
             socket.on('lights', function(msg){
                 // Handle lights event
-            })
+                console.log(`Received lights message: ${JSON.stringify(msg)}`);
+            });
+
+            socket.on('disconnect', () => {
+                console.log("Socket.IO disconnected!");
+            });
+
         });
     </script>
 
@@ -60,7 +76,7 @@
                     </div>
                     <div class="card-body">
                         <a class="btn btn-success" href="{{ url_for('send_data', client='door', message='lock') }}">Lock Door</a>
-                        <button class="btn btn-danger" onclick="controlDoor('unlock')">Unlock Door</button>
+                        <a class="btn btn-danger" href="{{ url_for('send_data', client='door', message='unlock') }}">Unlock Door</a>
                     </div>
                 </div>
             </div>
@@ -70,8 +86,8 @@
                         Fan Control
                     </div>
                     <div class="card-body">
-                        <button class="btn btn-success" onclick="controlFan('on')">Turn Fan On</button>
-                        <button class="btn btn-danger" onclick="controlFan('off')">Turn Fan Off</button>
+                        <a class="btn btn-success" href="{{ url_for('send_data', client='fan', message='fan_on') }}">Turn Fan On</a>
+                        <a class="btn btn-danger" href="{{ url_for('send_data', client='fan', message='fan_off') }}">Turn Fan Off</a>
                     </div>
                 </div>
             </div>
@@ -81,8 +97,8 @@
                         Light Control
                     </div>
                     <div class="card-body">
-                        <button class="btn btn-success" onclick="controlLight('on')">Turn Light On</button>
-                        <button class="btn btn-danger" onclick="controlLight('off')">Turn Light Off</button>
+                        <a class="btn btn-success" href="{{ url_for('send_data', client='light', message='fan_on') }}">Turn Light On</a>
+                        <a class="btn btn-danger" href="{{ url_for('send_data', client='light', message='fan_off') }}">Turn Light Off</a>
                     </div>
                 </div>
             </div>
