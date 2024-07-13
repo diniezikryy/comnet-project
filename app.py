@@ -2,18 +2,22 @@ from flask import Flask, render_template, redirect, url_for, flash, request
 from extensions import db, login_manager
 from flask_login import login_user, login_required, logout_user, current_user
 from forms import RegistrationForm, LoginForm
-from models import User, Log
+from models import User, NfcTag, DoorLog, DoorbellLog
 from flask_socketio import SocketIO, emit
+from flask_migrate import Migrate
 import socket, threading, signal, sys, os
 from datetime import datetime
 
+# App Config Settings
 app = Flask(__name__)
 app.config['SECRET_KEY'] = '695bf18ae30e380398715ff072e684c0d1437958c7e9147a'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///site.db'
 # app.config['DEBUG'] = True  # Enable debug mode
 
+# DB things
 db.init_app(app)
 login_manager.init_app(app)
+migrate = Migrate(app, db)
 
 client_db = [
     {
@@ -160,7 +164,7 @@ def logs():
 def register():
     form = RegistrationForm()
     if form.validate_on_submit():
-        user = User(username=form.username.data, nfc_tag=form.nfc_tag.data)
+        user = User(username=form.username.data)
         user.set_password(form.password.data)
         db.session.add(user)
         db.session.commit()
