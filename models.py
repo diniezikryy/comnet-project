@@ -36,7 +36,9 @@ class User(db.Model, UserMixin):
 class NfcTag(db.Model):
     __tablename__ = 'nfc_tag'
     nfc_id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+
+
 
 
 class DoorLog(db.Model):

@@ -14,7 +14,7 @@ from datetime import datetime
 app = Flask(__name__)
 app.config['SECRET_KEY'] = '695bf18ae30e380398715ff072e684c0d1437958c7e9147a'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///site.db'
-app.config['DEBUG'] = True  # Enable debug mode
+# app.config['DEBUG'] = True  # Enable debug mode
 csrf = CSRFProtect(app)
 
 # DB things
