@@ -8,7 +8,7 @@ class RegistrationForm(FlaskForm):
     name = StringField('Name', validators=[DataRequired(), Length(min=2, max=150)])
     username = StringField('Username', validators=[DataRequired(), Length(min=2, max=150)])
     password = PasswordField('Password', validators=[DataRequired()])
-    confirm_password = PasswordField('Confirm Password', validators=[DataRequired(),  EqualTo('password')])
+    confirm_password = PasswordField('Confirm Password', validators=[DataRequired(), EqualTo('password')])
     submit = SubmitField('Register')
 
     def validate_username(selfself, username):
@@ -22,12 +22,17 @@ class LoginForm(FlaskForm):
     password = PasswordField('Password', validators=[DataRequired()])
     submit = SubmitField('Login')
 
+
 class EditUserForm(FlaskForm):
     name = StringField('Name', validators=[DataRequired(), Length(min=2, max=150)])
     username = StringField('Username', validators=[DataRequired(), Length(min=2, max=150)])
     submit = SubmitField('Save Changes')
 
+
 class LinkNfcTagForm(FlaskForm):
     nfc_id = StringField('NFC Tag ID', validators=[DataRequired()])
     submit = SubmitField('Link NFC Tag')
 
+class RegisterNfcTagForm(FlaskForm):
+    nfc_id = StringField('NFC Tag ID', validators=[DataRequired()])
+    submit = SubmitField('Register NFC Tag')

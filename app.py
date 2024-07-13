@@ -3,7 +3,7 @@ from flask_wtf import CSRFProtect
 
 from extensions import db, login_manager
 from flask_login import login_user, login_required, logout_user, current_user
-from forms import RegistrationForm, LoginForm, LinkNfcTagForm, EditUserForm
+from forms import RegistrationForm, LoginForm, LinkNfcTagForm, EditUserForm, RegisterNfcTagForm
 from models import User, NfcTag, DoorLog, DoorbellLog
 from flask_socketio import SocketIO, emit
 from flask_migrate import Migrate
@@ -253,6 +253,29 @@ def link_nfc(user_id):
             flash('NFC tag not found', 'danger')
         return redirect(url_for('manage_users'))
     return render_template('link_nfc.html', form=form, user=user)
+
+@app.route('/register_nfc_tag', methods=['GET', 'POST'])
+@login_required
+def register_nfc_tag():
+    form = RegisterNfcTagForm()
+    if form.validate_on_submit():
+        nfc_tag = NfcTag.query.filter_by(nfc_id=form.nfc_id.data).first()
+        if nfc_tag:
+            flash('NFC tag already exists', 'danger')
+        else:
+            new_nfc_tag = NfcTag(nfc_id=form.nfc_id.data)
+            db.session.add(new_nfc_tag)
+            db.session.commit()
+            flash('NFC tag registered successfully', 'success')
+        return redirect(url_for('manage_users'))
+    return render_template('register_nfc_tag.html', form=form)
+
+@app.route('/nfc_tags')
+@login_required
+def nfc_tags():
+    tags = NfcTag.query.all()
+    return render_template('nfc_tags.html', tags=tags)
+
 
 
 # DB & Running Flask Web App
