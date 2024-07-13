@@ -1,7 +1,9 @@
 from flask import Flask, render_template, redirect, url_for, flash, request
+from flask_wtf import CSRFProtect
+
 from extensions import db, login_manager
 from flask_login import login_user, login_required, logout_user, current_user
-from forms import RegistrationForm, LoginForm
+from forms import RegistrationForm, LoginForm, LinkNfcTagForm, EditUserForm
 from models import User, NfcTag, DoorLog, DoorbellLog
 from flask_socketio import SocketIO, emit
 from flask_migrate import Migrate
@@ -12,7 +14,8 @@ from datetime import datetime
 app = Flask(__name__)
 app.config['SECRET_KEY'] = '695bf18ae30e380398715ff072e684c0d1437958c7e9147a'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///site.db'
-# app.config['DEBUG'] = True  # Enable debug mode
+app.config['DEBUG'] = True  # Enable debug mode
+csrf = CSRFProtect(app)
 
 # DB things
 db.init_app(app)
@@ -166,6 +169,7 @@ def logs():
 
 
 @app.route('/register', methods=['GET', 'POST'])
+@login_required
 def register():
     form = RegistrationForm()
     if form.validate_on_submit():
@@ -174,7 +178,7 @@ def register():
         db.session.add(user)
         db.session.commit()
         flash('Account created successfully!', 'success')
-        return redirect(url_for('login'))
+        return redirect(url_for('manage_users'))
     return render_template('register.html', form=form)
 
 
@@ -197,6 +201,58 @@ def login():
 def logout():
     logout_user()
     return redirect(url_for('login'))
+
+
+@app.route('/users', methods=['GET', 'POST'])
+@login_required
+def manage_users():
+    users = User.query.all()
+    return render_template('manage_users.html', users=users)
+
+
+@app.route('/edit_user/<int:user_id>', methods=['GET', 'POST'])
+@login_required
+def edit_user(user_id):
+    user = User.query.get_or_404(user_id)
+    form = EditUserForm(obj=user)
+    if form.validate_on_submit():
+        user.name = form.name.data
+        user.username = form.username.data
+        db.session.commit()
+        flash('User details updated successfully', 'success')
+        return redirect(url_for('manage_users'))
+    return render_template('edit_user.html', form=form, user=user)
+
+
+@app.route('/delete_user/<int:user_id>', methods=['POST'])
+@login_required
+def delete_user(user_id):
+    user = User.query.get_or_404(user_id)
+    db.session.delete(user)
+    db.session.commit()
+    flash('User deleted successfully', 'success')
+    return redirect(url_for('manage_users'))
+
+
+@app.route('/link_nfc/<int:user_id>', methods=['GET', 'POST'])
+@login_required
+def link_nfc(user_id):
+    user = User.query.get_or_404(user_id)
+    form = LinkNfcTagForm()
+    if form.validate_on_submit():
+        print(f"Form submitted with NFC ID: {form.nfc_id.data}")
+        nfc_tag = NfcTag.query.filter_by(nfc_id=form.nfc_id.data).first()
+        print(f"Query result for NFC ID {form.nfc_id.data}: {nfc_tag}")
+        if nfc_tag:
+            nfc_tag.user_id = user_id
+            print(f"Linking NFC tag {nfc_tag.nfc_id} to user {user_id}")
+            db.session.commit()
+            flash('NFC tag linked successfully', 'success')
+        else:
+            print(f"NFC tag {form.nfc_id.data} not found")
+            flash('NFC tag not found', 'danger')
+        return redirect(url_for('manage_users'))
+    return render_template('link_nfc.html', form=form, user=user)
 
 
 # DB & Running Flask Web App

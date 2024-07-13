@@ -21,3 +21,13 @@ class LoginForm(FlaskForm):
     username = StringField('Username', validators=[DataRequired()])
     password = PasswordField('Password', validators=[DataRequired()])
     submit = SubmitField('Login')
+
+class EditUserForm(FlaskForm):
+    name = StringField('Name', validators=[DataRequired(), Length(min=2, max=150)])
+    username = StringField('Username', validators=[DataRequired(), Length(min=2, max=150)])
+    submit = SubmitField('Save Changes')
+
+class LinkNfcTagForm(FlaskForm):
+    nfc_id = StringField('NFC Tag ID', validators=[DataRequired()])
+    submit = SubmitField('Link NFC Tag')
+
