@@ -148,31 +148,21 @@ def load_user(user_id):
     return User.query.get(int(user_id))
 
 
+# = = = PAGES = = =
+
 @app.route('/')
 @login_required
 def index():
-    return render_template('index.html')
+    num_users = User.query.count()
+    door_logs = DoorLog.query.order_by(DoorLog.timestamp.desc()).limit(5).all()
+    return render_template('index.html', num_users=num_users, door_logs=door_logs)
 
 
-@app.route('/test')
-def test():
-    return render_template('test.html')
-
-
-@app.route('/logs')
+@app.route('/door_logs')
 @login_required
 def logs():
-    # Hardcoded logs
-    logs = [
-        {'datetime': '1/1/24 5:00:00', 'status': 'Successful', 'id': '123456789009'},
-        {'datetime': '1/1/24 5:05:00', 'status': 'Fail', 'id': '123456789010'},
-        {'datetime': '1/1/24 5:10:00', 'status': 'Successful', 'id': '123456789011'},
-        {'datetime': '1/1/24 5:15:00', 'status': 'Fail', 'id': '123456789012'},
-        {'datetime': '1/1/24 5:20:00', 'status': 'Successful', 'id': '123456789013'},
-        {'datetime': '1/1/24 5:25:00', 'status': 'Fail', 'id': '123456789014'},
-        # Add more logs as needed
-    ]
-    return render_template('test_logs.html', logs=logs)
+    logs = DoorLog.query.order_by(DoorLog.timestamp.desc()).all()
+    return render_template('door_logs.html', logs=logs)
 
 
 @app.route('/register', methods=['GET', 'POST'])

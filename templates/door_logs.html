@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <div class="row my-3">
+        <div class="col-12">
+            <h1 class="text-center">All Door Logs</h1>
+            <div class="card">
+                <div class="card-header">
+                    Smart Lock Log
+                </div>
+                <div class="card-body">
+                    <table class="table table-bordered">
+                        <thead class="thead-light">
+                            <tr>
+                                <th scope="col">DateTime</th>
+                                <th scope="col">Status</th>
+                                <th scope="col">NFC_ID</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for log in logs %}
+                                <tr>
+                                    <td>{{ log.timestamp.strftime('%d/%m/%Y %H:%M:%S') }}</td>
+                                    <td>{{ log.status }}</td>
+                                    <td>{{ log.nfc_id }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
