@@ -48,54 +48,67 @@ TCP_IP = socket.gethostbyname(socket.gethostname())
 TCP_PORT = 12345
 BUFFER = 1024
 
+
 # Function to handle incoming socket data
 def handle_tcp_client(client_socket, client_address):
-    while True:
-        try:
-            data = client_socket.recv(BUFFER)
-            if not data:
+    with app.app_context():
+        while True:
+            try:
+                data = client_socket.recv(BUFFER)
+                if not data:
+                    break
+
+                # Emit data to WebSocket clients
+                print(f"this is client address {client_address}")
+                [client_ip, session_id] = client_address
+                client_name, message = data.decode('utf-8').split(": ", 1)
+                print(f"Received data from {client_name}: {message}")
+                # format data to insert into db
+                print(f"{message}")
+                message_parts = [part.strip() for part in message.split(",")]
+                print(message_parts)
+
+                for client in client_db:
+                    if client["ip"] == client_ip and client_name.lower() == client["name"]:
+                        action = client["name"]
+                        client["socket"] = client_socket
+
+                if action:
+
+                    if action == "door":
+                        # save data into db
+                        door_log = DoorLog(nfc_id=message_parts[0], timestamp=datetime.now(), status=message_parts[1])
+                        db.session.add(door_log)
+                        db.session.commit()
+
+                        emit_data = {"data": f"{datetime.now().strftime('%d/%m/%Y %H:%M:%S')}, {message}"}
+                        print(f"Emitting {action} event with data: {emit_data}")
+                        socketio.emit(action, emit_data)
+
+                        # send back
+                        client_socket.send("door request received".encode())
+                        print(f"sending back the formatted packet")
+
+                    elif action == "camera":
+                        # TODO: update to camera data
+                        emit_data = {"data": message}
+                        print(f"Emitting {action} event with data: {emit_data}")
+                        socketio.emit(action, emit_data)
+
+                        # send back
+                        client_socket.send("light&fan request received".encode())
+                        print(f"sending back the formatted packet")
+                else:
+                    print(f"Received data from unknown client {client_ip}: {data.decode('utf-8')}")
+
+            except ConnectionResetError:
                 break
-
-            # Emit data to WebSocket clients
-            print(f"this is client address {client_address}")
-            [client_ip, session_id] = client_address
-            client_name, message = data.decode('utf-8').split(": ", 1)
-            print(f"Received data from {client_name}: {message}")
-            
-            for client in client_db:
-                if client["ip"] == client_ip and client_name.lower() == client["name"]:
-                    action = client["name"]
-                    client["socket"] = client_socket
-
-            if action:
-
-                if action == "door":
-                    emit_data = {"data": f"{datetime.now().strftime('%d/%m/%Y %H:%M:%S')}, {message}"}
-                    print(f"Emitting {action} event with data: {emit_data}")
-                    socketio.emit(action, emit_data)
-
-                    # send back
-                    client_socket.send("door request received".encode())
-                    print(f"sending back the formatted packet")
-
-                elif action == "camera":
-                    # TODO: update to camera data
-                    emit_data = {"data": message}
-                    print(f"Emitting {action} event with data: {emit_data}")
-                    socketio.emit(action, emit_data)
-
-                    # send back
-                    client_socket.send("light&fan request received".encode())
-                    print(f"sending back the formatted packet")
-            else:
-                print(f"Received data from unknown client {client_ip}: {data.decode('utf-8')}")
-
-        except ConnectionResetError:
-            break
     client_socket.close()
+
 
 def handle_disconnect():
     print('Client disconnected')
+
 
 def tcp_server():
     print("Starting TCP server...")
@@ -109,6 +122,7 @@ def tcp_server():
         print(f"Connection from {addr}")
         client_handler = threading.Thread(target=handle_tcp_client, args=(client_socket, addr))
         client_handler.start()
+
 
 @app.route("/send_data")
 def send_data():
@@ -126,6 +140,7 @@ def send_data():
             except Exception as e:
                 print(f"Failed to send message to {client['name']}: {e}")
     return redirect("/")
+
 
 # = = = others = = =
 @login_manager.user_loader
@@ -164,7 +179,7 @@ def logs():
 def register():
     form = RegistrationForm()
     if form.validate_on_submit():
-        user = User(username=form.username.data)
+        user = User(name=form.name.data, username=form.username.data)
         user.set_password(form.password.data)
         db.session.add(user)
         db.session.commit()
@@ -192,6 +207,7 @@ def login():
 def logout():
     logout_user()
     return redirect(url_for('login'))
+
 
 # DB & Running Flask Web App
 def create_app():

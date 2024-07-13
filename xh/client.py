@@ -19,8 +19,11 @@ client_socket.connect((server_ip, server_port))
 # ###
 def send_messages():
     while True:
+        nfc_id = "123456789"
+        status = "success"
         usermsg = input("Enter a message to send to server: ") # can delete this line
-        message = "door: userid, success" + usermsg # TODO: UPDATE OWN DATA
+        # message = "door: userid, success" + usermsg # TODO: UPDATE OWN DATA
+        message = f"door: {nfc_id}, {status}"
         client_socket.sendto(message.encode(), (server_ip, server_port))
 
         if usermsg == "end":
