@@ -1,23 +1,24 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="container mt-4">
-    <h1 class="text-center">NFC Tags</h1>
-    <table class="table table-bordered">
-        <thead class="thead-light">
+    <div class="container mt-4">
+        <h1 class="text-center">NFC Tags</h1>
+        <table class="table table-bordered">
+            <thead class="thead-light">
             <tr>
                 <th scope="col">NFC Tag ID</th>
                 <th scope="col">Linked User</th>
             </tr>
-        </thead>
-        <tbody>
+            </thead>
+            <tbody>
             {% for tag in tags %}
                 <tr>
                     <td>{{ tag.nfc_id }}</td>
                     <td>{{ tag.user.name if tag.user else 'None' }}</td>
                 </tr>
             {% endfor %}
-        </tbody>
-    </table>
-</div>
+            </tbody>
+        </table>
+        <a href="{{ url_for('register_nfc_tag') }}" class="btn btn-secondary btn-sm">Register NFC Tag</a>
+    </div>
 {% endblock %}
