@@ -50,6 +50,7 @@ socketio = SocketIO(app)
 TCP_IP = socket.gethostbyname(socket.gethostname())
 TCP_PORT = 12345
 BUFFER = 1024
+FORMAT = "utf-8"
 
 
 # Function to handle incoming socket data
@@ -57,6 +58,7 @@ def handle_tcp_client(client_socket, client_address):
     with app.app_context():
         while True:
             try:
+                action = None
                 data = client_socket.recv(BUFFER)
                 if not data:
                     break
@@ -64,21 +66,20 @@ def handle_tcp_client(client_socket, client_address):
                 # Emit data to WebSocket clients
                 print(f"this is client address {client_address}")
                 [client_ip, session_id] = client_address
-                client_name, message = data.decode('utf-8').split(": ", 1)
+                client_name, message = data.decode(FORMAT).split(": ", 1)
                 print(f"Received data from {client_name}: {message}")
-                # format data to insert into db
-                print(f"{message}")
-                message_parts = [part.strip() for part in message.split(",")]
-                print(message_parts)
-
+                
                 for client in client_db:
                     if client["ip"] == client_ip and client_name.lower() == client["name"]:
                         action = client["name"]
                         client["socket"] = client_socket
 
                 if action:
-
+                    print(f"action is {action}")
                     if action == "door":
+                        # format data to insert into db
+                        message_parts = [part.strip() for part in message.split(",")]
+                        print(message_parts)
                         # save data into db
                         door_log = DoorLog(nfc_id=message_parts[0], timestamp=datetime.now(), status=message_parts[1])
                         db.session.add(door_log)
@@ -93,14 +94,22 @@ def handle_tcp_client(client_socket, client_address):
                         print(f"sending back the formatted packet")
 
                     elif action == "camera":
-                        # TODO: update to camera data
-                        emit_data = {"data": message}
-                        print(f"Emitting {action} event with data: {emit_data}")
-                        socketio.emit(action, emit_data)
+                        # Receive the filename
+                        filename = message
+                        print(f"[SERVER] Filename received: {filename}")
 
-                        # send back
-                        client_socket.send("light&fan request received".encode())
-                        print(f"sending back the formatted packet")
+                        # Send acknowledgment
+                        client_socket.send("Filename received".encode(FORMAT))
+                        
+                        # Open a file to write the incoming image data
+                        with open(f"server/{filename}", "wb") as file:
+                            while True:
+                                data = client_socket.recv(BUFFER)
+                                if not data:
+                                    break  # No more data received
+                                file.write(data)
+                                print(f"[SERVER] File {filename} received and saved.")
+                        
                 else:
                     print(f"Received data from unknown client {client_ip}: {data.decode('utf-8')}")
 
