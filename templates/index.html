@@ -8,7 +8,7 @@
                 <div class="card h-100 text-center">
                     <div class="card-body d-flex flex-column justify-content-center">
                         <h5 class="card-title">Door</h5>
-                        <button class="btn btn-outline-primary mt-auto" onclick="{{ url_for('send_data', client='door', message='unlock') }}">Unlock</button>
+                        <a class="btn btn-outline-primary mt-auto" href="{{ url_for('send_data', client='door', message='unlock') }}">Unlock</a>
                     </div>
                 </div>
             </div>
@@ -17,8 +17,8 @@
                     <div class="card-body d-flex flex-column justify-content-center">
                         <h5 class="card-title">Fan</h5>
                         <div class="mt-auto">
-                            <button class="btn btn-outline-success" onclick="{{ url_for('send_data', client='fan', message='fan_on') }}">ON</button>
-                            <button class="btn btn-outline-danger" onclick="{{ url_for('send_data', client='fan', message='fan_off') }}">OFF</button>
+                            <a class="btn btn-outline-success" href="{{ url_for('send_data', client='fan', message='fan_on') }}">ON</a>
+                            <a class="btn btn-outline-danger" href="{{ url_for('send_data', client='fan', message='fan_off') }}">OFF</a>
                         </div>
                     </div>
                 </div>
@@ -28,8 +28,8 @@
                     <div class="card-body d-flex flex-column justify-content-center">
                         <h5 class="card-title">Lights</h5>
                         <div class="mt-auto">
-                            <button class="btn btn-outline-success" onclick="{{ url_for('send_data', client='light', message='light_on') }}">ON</button>
-                            <button class="btn btn-outline-danger" onclick="{{ url_for('send_data', client='light', message='light_off') }}">OFF</button>
+                            <a class="btn btn-outline-success" href="{{ url_for('send_data', client='light', message='light_on') }}">ON</a>
+                            <a class="btn btn-outline-danger" href="{{ url_for('send_data', client='light', message='light_off') }}">OFF</a>
                         </div>
                     </div>
                 </div>

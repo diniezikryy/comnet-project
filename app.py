@@ -7,14 +7,18 @@ from forms import RegistrationForm, LoginForm, LinkNfcTagForm, EditUserForm, Reg
 from models import User, NfcTag, DoorLog, DoorbellLog
 from flask_socketio import SocketIO, emit
 from flask_migrate import Migrate
-import socket, threading, signal, sys, os
+import socket, threading, signal, sys, os, struct
 from datetime import datetime
 
 # App Config Settings
 app = Flask(__name__)
 app.config['SECRET_KEY'] = '695bf18ae30e380398715ff072e684c0d1437958c7e9147a'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///site.db'
+<<<<<<< HEAD
 #app.config['DEBUG'] = True  # Enable debug mode
+=======
+# app.config['DEBUG'] = True  # Enable debug mode
+>>>>>>> 80133fb219f40aea15fbc12909658ddfcfe71c44
 csrf = CSRFProtect(app)
 
 # DB things
@@ -23,11 +27,6 @@ login_manager.init_app(app)
 migrate = Migrate(app, db)
 
 client_db = [
-    {
-        "ip": "127.0.0.1",
-        "name": "door",
-        "socket": None
-    },
     {
         "ip": "94.16.32.21",
         "name": "door",
@@ -53,8 +52,17 @@ print(f"Should be on ip: {TCP_IP}, port: {TCP_PORT}")
 BUFFER = 1024
 FORMAT = "utf-8"
 
+# Function to save image from TCP client and store in DoorbellLog Model
+def save_image(image_data, filename):
+    # Ensure the directory exists
+    os.makedirs("static/uploads", exist_ok=True)
 
-# Function to handle incoming socket data
+    image_path = os.path.join('static/uploads', filename)
+    with open(image_path, 'wb') as file:
+        file.write(image_data)
+    return image_path
+
+
 def handle_tcp_client(client_socket, client_address):
     with app.app_context():
         while True:
@@ -64,60 +72,80 @@ def handle_tcp_client(client_socket, client_address):
                 if not data:
                     break
 
-                # Emit data to WebSocket clients
-                print(f"this is client address {client_address}")
+                print(f"Client address: {client_address}")
                 [client_ip, session_id] = client_address
                 client_name, message = data.decode(FORMAT).split(": ", 1)
                 print(f"Received data from {client_name}: {message}")
-                
+
                 for client in client_db:
+                    print(f"Checking client {client['name']} with IP {client['ip']}")
                     if client["ip"] == client_ip and client_name.lower() == client["name"]:
                         action = client["name"]
                         client["socket"] = client_socket
+                        break
 
                 if action:
-                    print(f"action is {action}")
+                    print(f"Action is {action}")
                     if action == "door":
-                        # format data to insert into db
+                        # Format data to insert into db
                         message_parts = [part.strip() for part in message.split(",")]
                         print(message_parts)
-                        # save data into db
+                        # Save data into db
                         door_log = DoorLog(nfc_id=message_parts[0], timestamp=datetime.now(), status=message_parts[1])
                         db.session.add(door_log)
                         db.session.commit()
 
                         emit_data = {"data": f"{datetime.now().strftime('%d/%m/%Y %H:%M:%S')}, {message}"}
-                        print(f"Emitting {action} event with data: {emit_data}")
+                        print(f"[DOOR] Emitting {action} event with data: {emit_data}")
                         socketio.emit(action, emit_data)
 
-                        # send back
-                        client_socket.send("door request received".encode())
-                        print(f"sending back the formatted packet")
+                        # Send back
+                        # client_socket.send("door request received".encode())
+                        # print(f"Sending back the formatted packet")
+                    elif action == "light&fan":
+                        # receive the message
+                        print("[LIGHT&FAN] this is message from light&fan: {message}")
 
                     elif action == "camera":
                         # Receive the filename
                         filename = message
-                        print(f"[SERVER] Filename received: {filename}")
+                        print(f"[CAMERA] Filename received: {filename}")
 
                         # Send acknowledgment
                         client_socket.send("Filename received".encode(FORMAT))
-                        
+
+                         # Receive the file size
+                        file_size_data = client_socket.recv(4)
+                        file_size = struct.unpack('!I', file_size_data)[0]
+                        print(f"[CAMERA] File size received: {file_size} bytes")
+
                         # Open a file to write the incoming image data
-                        with open(f"server/{filename}", "wb") as file:
-                            while True:
-                                data = client_socket.recv(BUFFER)
-                                if not data:
-                                    break  # No more data received
-                                file.write(data)
-                                print(f"[SERVER] File {filename} received and saved.")
+                        image_data = b""
+                        total_received = 0
+                        while total_received < file_size:
+                            chunk = client_socket.recv(BUFFER)
+                            if not chunk:
+                                print(f"its done")
+                                break
+                            image_data += chunk
+                            total_received += len(chunk)
                         
+                        print(f"[CAMERA] Received {total_received} of {file_size} bytes")
+                        image_path = save_image(image_data, filename)
+
+                        # Save image path into database
+                        doorbell_log = DoorbellLog(timestamp=datetime.now(), image=image_path)
+                        db.session.add(doorbell_log)
+                        db.session.commit()
+
+                        print(f"[CAMERA] File {filename} received and saved at {image_path}.")
+
                 else:
                     print(f"Received data from unknown client {client_ip}: {data.decode('utf-8')}")
 
             except ConnectionResetError:
                 break
     client_socket.close()
-
 
 def handle_disconnect():
     print('Client disconnected')
@@ -144,14 +172,24 @@ def send_data():
 
     for client in client_db:
         if client["name"] == sendto_client:
+            send_port = 54321
+            server_ip = client["ip"]
+
+            # setup client socket
+            client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            # initiate connection to server
+            client_socket.connect((server_ip, server_port))
+
             try:
-                if client["socket"]:
-                    print(f"Send packet to {client['name']}:{client['ip']} --> {message}")
-                    client["socket"].send(message.encode())
-                else:
-                    print(f"No socket connection available for {client['name']}:{client['ip']}")
+                print(f"Send packet to {client['name']}:{client['ip']} --> {message}")
+                client_socket.send(message.encode())
+                client_socket.close()
+
+            except socket.error as a:
+                print(f"Socket error: {a}")
             except Exception as e:
                 print(f"Failed to send message to {client['name']}: {e}")
+
     return redirect("/")
 
 
