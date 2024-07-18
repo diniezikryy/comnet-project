@@ -14,7 +14,7 @@ from datetime import datetime
 app = Flask(__name__)
 app.config['SECRET_KEY'] = '695bf18ae30e380398715ff072e684c0d1437958c7e9147a'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///site.db'
-app.config['DEBUG'] = True  # Enable debug mode
+#app.config['DEBUG'] = True  # Enable debug mode
 csrf = CSRFProtect(app)
 
 # DB things
@@ -47,8 +47,9 @@ client_db = [
 
 # = = = socket tcp = = =
 socketio = SocketIO(app)
-TCP_IP = socket.gethostbyname(socket.gethostname())
+TCP_IP = "94.16.32.22"
 TCP_PORT = 12345
+print(f"Should be on ip: {TCP_IP}, port: {TCP_PORT}")
 BUFFER = 1024
 FORMAT = "utf-8"
 
