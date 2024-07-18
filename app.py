@@ -7,7 +7,7 @@ from forms import RegistrationForm, LoginForm, LinkNfcTagForm, EditUserForm, Reg
 from models import User, NfcTag, DoorLog, DoorbellLog
 from flask_socketio import SocketIO, emit
 from flask_migrate import Migrate
-import socket, threading, signal, sys, os
+import socket, threading, signal, sys, os, struct
 from datetime import datetime
 
 # App Config Settings
@@ -49,6 +49,9 @@ FORMAT = "utf-8"
 
 # Function to save image from TCP client and store in DoorbellLog Model
 def save_image(image_data, filename):
+    # Ensure the directory exists
+    os.makedirs("static/uploads", exist_ok=True)
+
     image_path = os.path.join('static/uploads', filename)
     with open(image_path, 'wb') as file:
         file.write(image_data)
@@ -88,7 +91,7 @@ def handle_tcp_client(client_socket, client_address):
                         db.session.commit()
 
                         emit_data = {"data": f"{datetime.now().strftime('%d/%m/%Y %H:%M:%S')}, {message}"}
-                        print(f"Emitting {action} event with data: {emit_data}")
+                        print(f"[DOOR] Emitting {action} event with data: {emit_data}")
                         socketio.emit(action, emit_data)
 
                         # Send back
@@ -96,24 +99,33 @@ def handle_tcp_client(client_socket, client_address):
                         # print(f"Sending back the formatted packet")
                     elif action == "light&fan":
                         # receive the message
-                        print("this is message from light&fan: {message}")
+                        print("[LIGHT&FAN] this is message from light&fan: {message}")
 
                     elif action == "camera":
                         # Receive the filename
                         filename = message
-                        print(f"[SERVER] Filename received: {filename}")
+                        print(f"[CAMERA] Filename received: {filename}")
 
                         # Send acknowledgment
                         client_socket.send("Filename received".encode(FORMAT))
 
+                         # Receive the file size
+                        file_size_data = client_socket.recv(4)
+                        file_size = struct.unpack('!I', file_size_data)[0]
+                        print(f"[CAMERA] File size received: {file_size} bytes")
+
                         # Open a file to write the incoming image data
                         image_data = b""
-                        while True:
+                        total_received = 0
+                        while total_received < file_size:
                             chunk = client_socket.recv(BUFFER)
                             if not chunk:
+                                print(f"its done")
                                 break
                             image_data += chunk
-
+                            total_received += len(chunk)
+                        
+                        print(f"[CAMERA] Received {total_received} of {file_size} bytes")
                         image_path = save_image(image_data, filename)
 
                         # Save image path into database
@@ -121,7 +133,7 @@ def handle_tcp_client(client_socket, client_address):
                         db.session.add(doorbell_log)
                         db.session.commit()
 
-                        print(f"[SERVER] File {filename} received and saved at {image_path}.")
+                        print(f"[CAMERA] File {filename} received and saved at {image_path}.")
 
                 else:
                     print(f"Received data from unknown client {client_ip}: {data.decode('utf-8')}")

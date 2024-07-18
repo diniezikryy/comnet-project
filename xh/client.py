@@ -1,5 +1,5 @@
 import socket, threading
-import os
+import os, struct
 
 server_port = 12345
 server_ip = socket.gethostbyname(socket.gethostname())
@@ -26,8 +26,8 @@ def send_messages():
         status = "success"
         # usermsg = input("Enter a message to send to server: ") # can delete this line
         # message = "door: userid, success" + "hellooo" # TODO: UPDATE OWN DATA
-        message = f"door: {nfc_id}, {status}"
-        client_socket.sendto(message.encode(), (server_ip, server_port))
+        # message = f"door: {nfc_id}, {status}"
+        # client_socket.sendto(message.encode(), (server_ip, server_port))
 
         # if usermsg == "end":
         #     print("Ending connection...")
@@ -58,12 +58,16 @@ def send_pic():
 
     with open(f"xh/{filename}", "rb") as file: # TODO: update location of the file 
         data = file.read()
-        print(f"we are sending data: {data}")
 
     client_socket.send(f"camera: {filename}".encode(file_format))
     print("[CLIENT]: Filename sent successfully")
     msg = client_socket.recv(buffer_size).decode(file_format) # send the filename
     print(f"[SERVER]: {msg}")
+
+    # Send the file size
+    file_size = os.path.getsize(f"xh/{filename}")
+    client_socket.send(struct.pack('!I', file_size))
+    print(f"[CLIENT] File size sent: {file_size} bytes")
 
     client_socket.sendall(data) # send file over to server
     print("[CLIENT]: File sent successfully")
