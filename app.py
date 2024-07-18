@@ -14,7 +14,7 @@ from datetime import datetime
 app = Flask(__name__)
 app.config['SECRET_KEY'] = '695bf18ae30e380398715ff072e684c0d1437958c7e9147a'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///site.db'
-app.config['DEBUG'] = True  # Enable debug mode
+# app.config['DEBUG'] = True  # Enable debug mode
 csrf = CSRFProtect(app)
 
 # DB things
@@ -25,7 +25,7 @@ migrate = Migrate(app, db)
 client_db = [
     {
         "ip": "127.0.0.1",
-        "name": "door",
+        "name": "camera",
         "socket": None
     },
     {
@@ -38,11 +38,11 @@ client_db = [
         "name": "light&fan",
         "socket": None
     },
-    {
-        "ip": "94.16.32.23",
-        "name": "camera",
-        "socket": None
-    }
+    # {
+    #     "ip": "94.16.32.23",
+    #     "name": "camera",
+    #     "socket": None
+    # }
 ]
 
 # = = = socket tcp = = =
@@ -52,8 +52,14 @@ TCP_PORT = 12345
 BUFFER = 1024
 FORMAT = "utf-8"
 
+# Function to save image from TCP client and store in DoorbellLog Model
+def save_image(image_data, filename):
+    image_path = os.path.join('static/uploads', filename)
+    with open(image_path, 'wb') as file:
+        file.write(image_data)
+    return image_path
 
-# Function to handle incoming socket data
+
 def handle_tcp_client(client_socket, client_address):
     with app.app_context():
         while True:
@@ -63,24 +69,25 @@ def handle_tcp_client(client_socket, client_address):
                 if not data:
                     break
 
-                # Emit data to WebSocket clients
-                print(f"this is client address {client_address}")
+                print(f"Client address: {client_address}")
                 [client_ip, session_id] = client_address
                 client_name, message = data.decode(FORMAT).split(": ", 1)
                 print(f"Received data from {client_name}: {message}")
-                
+
                 for client in client_db:
+                    print(f"Checking client {client['name']} with IP {client['ip']}")
                     if client["ip"] == client_ip and client_name.lower() == client["name"]:
                         action = client["name"]
                         client["socket"] = client_socket
+                        break
 
                 if action:
-                    print(f"action is {action}")
+                    print(f"Action is {action}")
                     if action == "door":
-                        # format data to insert into db
+                        # Format data to insert into db
                         message_parts = [part.strip() for part in message.split(",")]
                         print(message_parts)
-                        # save data into db
+                        # Save data into db
                         door_log = DoorLog(nfc_id=message_parts[0], timestamp=datetime.now(), status=message_parts[1])
                         db.session.add(door_log)
                         db.session.commit()
@@ -89,9 +96,9 @@ def handle_tcp_client(client_socket, client_address):
                         print(f"Emitting {action} event with data: {emit_data}")
                         socketio.emit(action, emit_data)
 
-                        # send back
+                        # Send back
                         client_socket.send("door request received".encode())
-                        print(f"sending back the formatted packet")
+                        print(f"Sending back the formatted packet")
 
                     elif action == "camera":
                         # Receive the filename
@@ -100,23 +107,30 @@ def handle_tcp_client(client_socket, client_address):
 
                         # Send acknowledgment
                         client_socket.send("Filename received".encode(FORMAT))
-                        
+
                         # Open a file to write the incoming image data
-                        with open(f"server/{filename}", "wb") as file:
-                            while True:
-                                data = client_socket.recv(BUFFER)
-                                if not data:
-                                    break  # No more data received
-                                file.write(data)
-                                print(f"[SERVER] File {filename} received and saved.")
-                        
+                        image_data = b""
+                        while True:
+                            chunk = client_socket.recv(BUFFER)
+                            if not chunk:
+                                break
+                            image_data += chunk
+
+                        image_path = save_image(image_data, filename)
+
+                        # Save image path into database
+                        doorbell_log = DoorbellLog(timestamp=datetime.now(), image=image_path)
+                        db.session.add(doorbell_log)
+                        db.session.commit()
+
+                        print(f"[SERVER] File {filename} received and saved at {image_path}.")
+
                 else:
                     print(f"Received data from unknown client {client_ip}: {data.decode('utf-8')}")
 
             except ConnectionResetError:
                 break
     client_socket.close()
-
 
 def handle_disconnect():
     print('Client disconnected')
