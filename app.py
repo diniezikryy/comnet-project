@@ -24,11 +24,6 @@ migrate = Migrate(app, db)
 
 client_db = [
     {
-        "ip": "127.0.0.1",
-        "name": "door",
-        "socket": None
-    },
-    {
         "ip": "94.16.32.21",
         "name": "door",
         "socket": None
@@ -91,8 +86,12 @@ def handle_tcp_client(client_socket, client_address):
                         socketio.emit(action, emit_data)
 
                         # send back
-                        client_socket.send("door request received".encode())
-                        print(f"sending back the formatted packet")
+                        # client_socket.send("door request received".encode())
+                        # print(f"sending back the formatted packet")
+
+                    elif action == "light&fan":
+                        # receive the message
+                        print(f"this is message from light&fan: {message}")
 
                     elif action == "camera":
                         # Receive the filename
@@ -141,17 +140,29 @@ def tcp_server():
 def send_data():
     sendto_client = request.args.get('client')
     message = request.args.get('message')
+    print(f"OPEN THE DOOR!! WHOS THE CLIENT: {sendto_client}, MESSAGE IS: {message}")
+    
 
     for client in client_db:
         if client["name"] == sendto_client:
+            server_port = 54321
+            server_ip = client["ip"]
+            
+            # setup client socket
+            client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            # initiate connection to the server
+            client_socket.connect((server_ip, server_port))
+            
             try:
-                if client["socket"]:
-                    print(f"Send packet to {client['name']}:{client['ip']} --> {message}")
-                    client["socket"].send(message.encode())
-                else:
-                    print(f"No socket connection available for {client['name']}:{client['ip']}")
+                print(f"Send packet to {client['name']}:{client['ip']} --> {message}")
+                client_socket.send(message.encode())
+                client_socket.close()
+                
+            except socket.error as a:
+                print(f"Socker error: {a}")
             except Exception as e:
                 print(f"Failed to send message to {client['name']}: {e}")
+                
     return redirect("/")
 
 

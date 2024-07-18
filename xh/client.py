@@ -3,6 +3,7 @@ import os
 
 server_port = 12345
 server_ip = socket.gethostbyname(socket.gethostname())
+print(f"server_ip: {server_ip}, port: {server_port}")
 # server_ip = "127.0.0.1"
 buffer_size = 1024 # make sure this is same as server buffer size
 file_format = "utf-8"
