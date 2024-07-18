@@ -6,4 +6,4 @@ with open(activate_this) as file_:
 
 import sys
 sys.path.insert(0, '/var/www/safeaccess')
-from safeaccess import app as application
+from app import app as application
