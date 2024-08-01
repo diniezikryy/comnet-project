@@ -2,7 +2,7 @@
 
 {% block content %}
     <div class="container">
-        <h1 class="text-center">Comnet Dashboard</h1>
+        <h1 class="text-center">Safe Access Dashboard</h1>
         <div class="row my-3 g-3">
             <div class="col-md-3 col-sm-6">
                 <div class="card h-100 text-center">
@@ -34,15 +34,22 @@
                     </div>
                 </div>
             </div>
-            <div class="col-md-3 col-sm-6">
-                <div class="card h-100 text-center">
-                    <div class="card-body d-flex flex-column justify-content-center">
-                        <h5 class="card-title">Check Front Door</h5>
-                        <button type="button" class="btn btn-primary" data-bs-toggle="modal"
-                                data-bs-target="#placeholderModal">
-                            Check
-                        </button>
-                    </div>
+        </div>
+        <div class"row my-3">
+            <div class="card h-100 text-center">
+                <div class="card-body d-flex flex-column justify-content-center">
+                    {% if latest_photo %}
+                        <img id="latestPhoto" src="{{ latest_photo.image }}" alt="Latest doorbell photo" style="max-width: 100%;">
+                        <p id="timestamp">Timestamp: {{ latest_photo.timestamp }}</p>
+                    {% else %}
+                        <p>No photo available</p>
+                    {% endif %}
+                    <!-- <h5 class="card-title">Check Front Door</h5> -->
+                    <!-- <button type="button" class="btn btn-primary" data-bs-toggle="modal" -->
+                            <!-- data-bs-target="#placeholderModal"> -->
+                        <!-- Check -->
+                    <!-- </button> -->
+                    
                 </div>
             </div>
         </div>
@@ -88,7 +95,12 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    Insert Image Here
+                    {% if latest_photo %}
+                        <img id="latestPhoto" src"{{ latest_photo.image }}" alt="Latest doorbell photo" style="max-width: 100%;">
+                        <p id="timestamp">Timestamp: {{ latest_photo.timestamp }}</p>
+                    {% else %}
+                        <p>No photo available</p>
+                    {% endif %}
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>

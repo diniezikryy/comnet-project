@@ -67,6 +67,9 @@ def handle_send(send_sock):
     send_sock.send("camera: HELLOOO IM FROM CLIENT".encode(FORMAT))
     return
 
+def camera():
+    return
+    
 # = = = = =
 
 # initialise the sockets

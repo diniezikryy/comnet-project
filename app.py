@@ -1,5 +1,6 @@
-from flask import Flask, render_template, redirect, url_for, flash, request
+from flask import Flask, render_template, redirect, url_for, flash, request, jsonify
 from flask_wtf import CSRFProtect
+from sqlalchemy import desc
 
 from extensions import db, login_manager
 from flask_login import login_user, login_required, logout_user, current_user
@@ -24,6 +25,11 @@ migrate = Migrate(app, db)
 
 client_db = [
     {
+        "ip": "94.16.32.25",
+        "name": "camera",
+        "socket": None
+    },
+    {
         "ip": "94.16.32.21",
         "name": "door",
         "socket": None
@@ -44,7 +50,6 @@ client_db = [
 socketio = SocketIO(app)
 TCP_IP = "94.16.32.22"
 TCP_PORT = 12345
-print(f"Should be on ip: {TCP_IP}, port: {TCP_PORT}")
 BUFFER = 1024
 FORMAT = "utf-8"
 
@@ -95,9 +100,6 @@ def handle_tcp_client(client_socket, client_address):
                         print(f"[DOOR] Emitting {action} event with data: {emit_data}")
                         socketio.emit(action, emit_data)
 
-                        # Send back
-                        # client_socket.send("door request received".encode())
-                        # print(f"Sending back the formatted packet")
                     elif action == "light&fan":
                         # receive the message
                         print("[LIGHT&FAN] this is message from light&fan: {message}")
@@ -135,13 +137,16 @@ def handle_tcp_client(client_socket, client_address):
                         db.session.commit()
 
                         print(f"[CAMERA] File {filename} received and saved at {image_path}.")
+                        print(f"Time now is {datetime.now()}")
 
                 else:
                     print(f"Received data from unknown client {client_ip}: {data.decode('utf-8')}")
 
             except ConnectionResetError:
                 break
-    client_socket.close()
+            
+        client_socket.close()
+            
 
 def handle_disconnect():
     print('Client disconnected')
@@ -187,7 +192,7 @@ def send_data():
                 print(f"Failed to send message to {client['name']}: {e}")
 
     return redirect("/")
-
+    
 
 # = = = others = = =
 @login_manager.user_loader
@@ -202,7 +207,17 @@ def load_user(user_id):
 def index():
     num_users = User.query.count()
     door_logs = DoorLog.query.order_by(DoorLog.timestamp.desc()).limit(5).all()
-    return render_template('index.html', num_users=num_users, door_logs=door_logs)
+    latest_log = DoorbellLog.query.order_by(desc(DoorbellLog.timestamp)).first()
+    print(f"Latest log data: {latest_log}.")
+    if latest_log:
+        latest_photo = {
+            'image': latest_log.image,
+            'timestamp':latest_log.timestamp.strftime('%Y-%m-%d %H:%M:%S')
+        }
+        print(f"Latest photo data: {latest_photo}.")
+    else:
+        latest_photo = None
+    return render_template('index.html', num_users=num_users, door_logs=door_logs, latest_photo=latest_photo)
 
 
 @app.route('/door_logs')
