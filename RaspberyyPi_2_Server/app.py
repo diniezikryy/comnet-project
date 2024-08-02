@@ -23,17 +23,16 @@ migrate = Migrate(app, db)
 
 # Define client database with devices and their IP addresses
 client_db = [
-    {"ip": "94.16.32.25", "name": "camera", "socket": None},
-    {"ip": "94.16.32.21", "name": "door", "socket": None},
-    {"ip": "94.16.32.23", "name": "light&fan", "socket": None},
-    {"ip": "94.16.32.23", "name": "camera", "socket": None}
+    {"ip": "94.16.32.21", "name": "door", "socket": None},      # for door pi
+    {"ip": "94.16.32.23", "name": "light&fan", "socket": None}, # used for light and fan functions, from light, fan and camera pi
+    {"ip": "94.16.32.23", "name": "camera", "socket": None}     # used for camera functions, from light, fan and camera pi
 ]
 
 # Initialize SocketIO
 socketio = SocketIO(app)
-TCP_IP = "94.16.32.22"
-TCP_PORT = 12345
-BUFFER = 1024
+TCP_IP = "94.16.32.22"  # ip address of own device
+TCP_PORT = 12345        # port to receive tcp packets
+BUFFER = 1024           # accept up to 1024 bytes
 FORMAT = "utf-8"
 
 def save_image(image_data, filename):
@@ -48,7 +47,7 @@ def save_image(image_data, filename):
         str: The path to the saved image file.
     """
     os.makedirs("static/uploads", exist_ok=True)
-    image_path = os.path.join('static/uploads', filename)
+    image_path = os.path.join('static/uploads', filename) # save to static/uploads folder
     with open(image_path, 'wb') as file:
         file.write(image_data)
     return image_path
@@ -65,49 +64,49 @@ def handle_tcp_client(client_socket, client_address):
         while True:
             try:
                 action = None
-                data = client_socket.recv(BUFFER)
+                data = client_socket.recv(BUFFER)   # receive up to 1024 bytes
                 if not data:
                     break
 
                 client_ip, session_id = client_address
-                client_name, message = data.decode(FORMAT).split(": ", 1)
+                client_name, message = data.decode(FORMAT).split(": ", 1)   # decode from utf-8
 
                 for client in client_db:
-                    if client["ip"] == client_ip and client_name.lower() == client["name"]:
+                    if client["ip"] == client_ip and client_name.lower() == client["name"]:     # find out if client connected is from any of the 2 pis
                         action = client["name"]
                         client["socket"] = client_socket
                         break
 
-                if action:
-                    if action == "door":
+                if action: # if packet is from 2 pis, do individual functions
+                    if action == "door": # to add the record to db
                         message_parts = [part.strip() for part in message.split(",")]
-                        door_log = DoorLog(nfc_id=message_parts[0], timestamp=datetime.now(), status=message_parts[1])
-                        db.session.add(door_log)
+                        door_log = DoorLog(nfc_id=message_parts[0], timestamp=datetime.now(), status=message_parts[1]) # split into individual details, easier to manage
+                        db.session.add(door_log)                                # add to db records
                         db.session.commit()
                         emit_data = {"data": f"{datetime.now().strftime('%d/%m/%Y %H:%M:%S')}, {message}"}
-                        socketio.emit(action, emit_data)
+                        socketio.emit(action, emit_data)                        # display on main index page
 
-                    elif action == "light&fan":
-                        print(f"[LIGHT&FAN] Message from light&fan: {message}")
+                    elif action == "light&fan":                                 # to receive confirmation messages from light and fan
+                        print(f"[LIGHT&FAN] Message from light&fan: {message}") 
 
-                    elif action == "camera":
+                    elif action == "camera":                                    # display image of whoever is at the door
                         filename = message
-                        client_socket.send("Filename received".encode(FORMAT))
+                        client_socket.send("Filename received".encode(FORMAT))  # send confirmation message to camera pi
                         file_size_data = client_socket.recv(4)
-                        file_size = struct.unpack('!I', file_size_data)[0]
+                        file_size = struct.unpack('!I', file_size_data)[0]      # create empty image first
 
                         image_data = b""
                         total_received = 0
                         while total_received < file_size:
-                            chunk = client_socket.recv(BUFFER)
+                            chunk = client_socket.recv(BUFFER)                  # write bytes into the actual image file
                             if not chunk:
-                                break
+                                break                                           # exit the function if all of the bytes are sent.
                             image_data += chunk
                             total_received += len(chunk)
 
                         image_path = save_image(image_data, filename)
                         doorbell_log = DoorbellLog(timestamp=datetime.now(), image=image_path)
-                        db.session.add(doorbell_log)
+                        db.session.add(doorbell_log)                            # add image details to session
                         db.session.commit()
 
                 else:
@@ -116,20 +115,20 @@ def handle_tcp_client(client_socket, client_address):
             except ConnectionResetError:
                 break
             
-        client_socket.close()
+        client_socket.close()       # close socket
 
 def handle_disconnect():
     """
     Handle client disconnection.
     """
-    print('Client disconnected')
+    print('Client disconnected')    # show that the socket closed
 
 def tcp_server():
     """
     Start TCP server and listen for incoming connections.
     """
-    tcp_server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    tcp_server_socket.bind((TCP_IP, TCP_PORT))
+    tcp_server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)   # use TCP
+    tcp_server_socket.bind((TCP_IP, TCP_PORT)) # bind current server to set IP and PORT
     tcp_server_socket.listen(5)
 
     while True:
@@ -145,20 +144,20 @@ def send_data():
     Returns:
         Response: Redirect to home page.
     """
-    sendto_client = request.args.get('client')
-    message = request.args.get('message')
+    sendto_client = request.args.get('client')  # identify who to send the file back to
+    message = request.args.get('message')       # message content to send back
 
     for client in client_db:
-        if client["name"] == sendto_client:
-            server_port = 54321
-            server_ip = client["ip"]
+        if client["name"] == sendto_client: 
+            server_port = 54321                 # map the port to send back
+            server_ip = client["ip"]            # map to individual ip address
 
             client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            client_socket.connect((server_ip, server_port))
+            client_socket.connect((server_ip, server_port)) # create connection to client
 
             try:
-                client_socket.send(message.encode())
-                client_socket.close()
+                client_socket.send(message.encode())        # send message to client
+                client_socket.close()                       # close the socket
             except socket.error as a:
                 print(f"Socket error: {a}")
             except Exception as e:
@@ -177,7 +176,7 @@ def load_user(user_id):
     Returns:
         User: The user object.
     """
-    return User.query.get(int(user_id))
+    return User.query.get(int(user_id)) # return used details
 
 @app.route('/')
 @login_required
@@ -189,8 +188,8 @@ def index():
         Response: The rendered template for the index page.
     """
     num_users = User.query.count()
-    door_logs = DoorLog.query.order_by(DoorLog.timestamp.desc()).limit(5).all()
-    latest_log = DoorbellLog.query.order_by(desc(DoorbellLog.timestamp)).first()
+    door_logs = DoorLog.query.order_by(DoorLog.timestamp.desc()).limit(5).all()     # limit the number of door logs to splay    
+    latest_log = DoorbellLog.query.order_by(desc(DoorbellLog.timestamp)).first()    # display only the latest logs
     if latest_log:
         latest_photo = {
             'image': latest_log.image,
@@ -209,7 +208,7 @@ def logs():
     Returns:
         Response: The rendered template for the door logs page.
     """
-    logs = DoorLog.query.order_by(DoorLog.timestamp.desc()).all()
+    logs = DoorLog.query.order_by(DoorLog.timestamp.desc()).all()   # get all logs from door entry attempts
     return render_template('door_logs.html', logs=logs)
 
 @app.route('/register', methods=['GET', 'POST'])
@@ -223,9 +222,9 @@ def register():
     """
     form = RegistrationForm()
     if form.validate_on_submit():
-        user = User(name=form.name.data, username=form.username.data)
-        user.set_password(form.password.data)
-        db.session.add(user)
+        user = User(name=form.name.data, username=form.username.data)   # get user information
+        user.set_password(form.password.data)                           # set user password
+        db.session.add(user)                                            # add user
         db.session.commit()
         flash('Account created successfully!', 'success')
         return redirect(url_for('manage_users'))
@@ -241,8 +240,8 @@ def login():
     """
     form = LoginForm()
     if form.validate_on_submit():
-        user = User.query.filter_by(username=form.username.data).first()
-        if user and user.check_password(form.password.data):
+        user = User.query.filter_by(username=form.username.data).first()    # get user from db by username
+        if user and user.check_password(form.password.data):                # if password is correct, allow user to access index
             login_user(user, remember=True)
             next_page = request.args.get('next')
             return redirect(next_page) if next_page else redirect(url_for('index'))
@@ -259,7 +258,7 @@ def logout():
     Returns:
         Response: Redirect to login page.
     """
-    logout_user()
+    logout_user()   # log the user out of the session
     return redirect(url_for('login'))
 
 @app.route('/users', methods=['GET', 'POST'])
@@ -271,7 +270,7 @@ def manage_users():
     Returns:
         Response: The rendered template for the manage users page.
     """
-    users = User.query.all()
+    users = User.query.all()    # get full list of users within the page
     return render_template('manage_users.html', users=users)
 
 @app.route('/edit_user/<int:user_id>', methods=['GET', 'POST'])
@@ -286,13 +285,13 @@ def edit_user(user_id):
     Returns:
         Response: The rendered template for the edit user page or a redirect to manage users page.
     """
-    user = User.query.get_or_404(user_id)
-    form = EditUserForm(obj=user)
+    user = User.query.get_or_404(user_id)   # get username
+    form = EditUserForm(obj=user)           # get the form
     if form.validate_on_submit():
-        user.name = form.name.data
+        user.name = form.name.data          # get user details
         user.username = form.username.data
-        db.session.commit()
-        flash('User details updated successfully', 'success')
+        db.session.commit()                 # save to db
+        flash('User details updated successfully', 'success')   # display successfully updated user details
         return redirect(url_for('manage_users'))
     return render_template('edit_user.html', form=form, user=user)
 
@@ -308,9 +307,9 @@ def delete_user(user_id):
     Returns:
         Response: Redirect to manage users page.
     """
-    user = User.query.get_or_404(user_id)
-    db.session.delete(user)
-    db.session.commit()
+    user = User.query.get_or_404(user_id)   # get user details
+    db.session.delete(user)                 # delete user from db
+    db.session.commit()                     # save to db
     flash('User deleted successfully', 'success')
     return redirect(url_for('manage_users'))
 
@@ -326,16 +325,16 @@ def link_nfc(user_id):
     Returns:
         Response: The rendered template for the link NFC page or a redirect to manage users page.
     """
-    user = User.query.get_or_404(user_id)
-    form = LinkNfcTagForm()
+    user = User.query.get_or_404(user_id)   # get user details
+    form = LinkNfcTagForm()                 # link nfc
     if form.validate_on_submit():
         nfc_tag = NfcTag.query.filter_by(nfc_id=form.nfc_id.data).first()
         if nfc_tag:
-            nfc_tag.user_id = user_id
-            db.session.commit()
+            nfc_tag.user_id = user_id   # save the nfc id to the user
+            db.session.commit()         # save db
             flash('NFC tag linked successfully', 'success')
         else:
-            flash('NFC tag not found', 'danger')
+            flash('NFC tag not found', 'danger')    # display error in linking nfc id to user
         return redirect(url_for('manage_users'))
     return render_template('link_nfc.html', form=form, user=user)
 
@@ -350,13 +349,13 @@ def register_nfc_tag():
     """
     form = RegisterNfcTagForm()
     if form.validate_on_submit():
-        nfc_tag = NfcTag.query.filter_by(nfc_id=form.nfc_id.data).first()
+        nfc_tag = NfcTag.query.filter_by(nfc_id=form.nfc_id.data).first()   # get nfc id
         if nfc_tag:
-            flash('NFC tag already exists', 'danger')
+            flash('NFC tag already exists', 'danger')       # display error; user already exists
         else:
-            new_nfc_tag = NfcTag(nfc_id=form.nfc_id.data)
+            new_nfc_tag = NfcTag(nfc_id=form.nfc_id.data)   # get nfc id and add details
             db.session.add(new_nfc_tag)
-            db.session.commit()
+            db.session.commit()                             # save to db
             flash('NFC tag registered successfully', 'success')
         return redirect(url_for('manage_users'))
     return render_template('register_nfc_tag.html', form=form)
@@ -370,7 +369,7 @@ def nfc_tags():
     Returns:
         Response: The rendered template for the NFC tags page.
     """
-    tags = NfcTag.query.all()
+    tags = NfcTag.query.all()       # get list of nfc id
     return render_template('nfc_tags.html', tags=tags)
 
 def create_app():
@@ -388,7 +387,7 @@ def inject_user():
     Returns:
         dict: Dictionary containing the current user.
     """
-    return dict(current_user=current_user)
+    return dict(current_user=current_user)      # get list of user db details
 
 if __name__ == '__main__':
     create_app()
